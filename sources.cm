@@ -1,0 +1,6 @@
+Group
+  structure Test
+is
+  $/basis.cm
+  $/smlnj-lib.cm
+  test.sml
