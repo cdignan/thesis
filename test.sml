@@ -2,17 +2,15 @@ structure Test = struct
 
   (* type Test.run (db, cmd) in the SML repl *)
 
-  (* helper function to remove newline char when reading in the
-     rows of the query output into the list of strings *)
-  fun remCharR (c, s) =
+  (* function to separate one row into list of elements *)
+  fun separateRow (row : string) =
     let
-      fun rem [] = []
-        | rem (c'::cs) =
-            if c = c'
-            then rem cs
-            else c'::rem cs
+      fun process (strs, currChars, []) = strs@[implode currChars]
+        | process (strs, currChars, #"\n"::[]) = strs@[implode currChars]
+        | process (strs, currChars, #"|"::nextChars) = process (strs@[implode currChars], [], nextChars)
+        | process (strs, currChars, c::nextChars) = process (strs, currChars@[c], nextChars)
     in
-      implode (rem (explode s))
+      process ([], [], explode row)
     end
 
   (* reads in query output and converts to list of strings *)
@@ -21,7 +19,7 @@ structure Test = struct
       val ins = TextIO.openIn infile
       fun loop ins =
         case TextIO.inputLine ins
-         of SOME line => remCharR (#"\n", line) :: loop ins
+         of SOME row => separateRow row :: loop ins
           | NONE => []
     in
       loop ins before TextIO.closeIn ins

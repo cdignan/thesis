@@ -1,6 +1,14 @@
 Group
   structure Test
+  structure AST
+  structure Scan
+  structure Ty
+  structure Token
 is
   $/basis.cm
   $/smlnj-lib.cm
   test.sml
+  ast.sml
+  scan.sml
+  ty.sml
+  token.sml
