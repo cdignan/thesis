@@ -4,23 +4,11 @@ structure Typecheck : sig
 
 end = struct
 
-  (* reads in query output and converts to string list list *)
-  fun readlist (infile : string) =
-    let
-      val ins = TextIO.openIn infile
-      fun loop ins =
-        case TextIO.inputLine ins
-          of SOME row => Scan.separateRow (row, [#"|"]) :: loop ins
-           | NONE => []
-    in
-      loop ins before TextIO.closeIn ins
-    end
-
   (* takes in table (string), returns record type *)
   fun getSchema (db : string, table : string) =
     let
       val _ = OS.Process.system ("sqlite3 " ^ db ^ " 'PRAGMA table_info(" ^ table ^ ")' > " ^ table ^ ".txt")
-      val schema = readlist (table ^ ".txt")
+      val schema = Scan.readlist (table ^ ".txt")
       fun loop [] = []
         | loop (l::ls) =
             case List.nth (l, 2)

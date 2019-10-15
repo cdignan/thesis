@@ -1,13 +1,13 @@
 structure Scan : sig
 
-  val separateRow : string * char list -> string list
-  val scan        : string -> Token.token list
+  val readlist : string -> string list list
+  val scan     : string -> Token.token list
 
 end = struct
 
   (* function to separate one row into list of elements *)
-  (* can be used both for query and in reading a file (see typecheck.sml readfile function) *)
-  fun separateRow (row, delimiters) =
+  (* can be used both for query and in reading a file (see readfile function) *)
+  fun separateRow (row : string, delimiters : char list) =
     let
       fun process (strs, currChars, []) = strs@[implode currChars]
         | process (strs, currChars, #"\n"::[]) = strs@[implode currChars]
@@ -21,6 +21,18 @@ end = struct
                | NONE => process (strs, currChars@[c], nextChars))
     in
       process ([], [], explode row)
+    end
+
+  (* reads in query output and converts to string list list *)
+  fun readlist infile =
+    let
+      val ins = TextIO.openIn infile
+      fun loop ins =
+        case TextIO.inputLine ins
+          of SOME row => separateRow (row, [#"|"]) :: loop ins
+           | NONE => []
+    in
+      loop ins before TextIO.closeIn ins
     end
 
   fun scan cmd =
