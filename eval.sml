@@ -1,6 +1,6 @@
 structure Eval : sig
 
-  val eval : Ty.ty * string list list -> AST.term list
+  val eval : Ty.ty * string list list -> Ty.ty * AST.term list
 
 end =  struct
 
@@ -24,7 +24,7 @@ end =  struct
       fun res [] = []
         | res (row::rows) = (AST.Record (List.map helper row))::(res rows)
     in
-      res i
+      (record, res i)
     end
 
 end
