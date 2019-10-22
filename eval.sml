@@ -1,30 +1,28 @@
 structure Eval : sig
 
-  val eval : Ty.ty * string list list -> Ty.ty * AST.term list
+  val eval : AST.term -> AST.term
 
-end =  struct
+end = struct
 
-  fun concat (Ty.Record [], []) = []
-    | concat (Ty.Record ((x,y)::list1), z::list2) = (x, y, z)::(concat (Ty.Record list1, list2))
-    | concat (_, _) = raise Fail "Eval.concat improper input"
+  fun removeDuplicates [] = []
+    | removeDuplicates (x::xs) = x::removeDuplicates(List.filter (fn y => y <> x) xs)
 
-  fun fullConcat (record, []) = []
-    | fullConcat (record, row::rows) = (concat (record, row))::(fullConcat (record, rows))
-
-  fun helper (x, Ty.Int, z) = (x, AST.Int z)
-    | helper (x, Ty.Text, z) = (x, AST.Text z)
-    | helper (x, Ty.Date, z) = (x, AST.Date z)
-    | helper (x, Ty.Time, z) = (x, AST.Time z)
-    | helper (_, _, _) = raise Fail "no support for this type.... yet"
-
-  (* take in record type and string list list, return list of record terms *)
-  fun eval (record, rows) =
-    let
-      val i = fullConcat (record, rows)
-      fun res [] = []
-        | res (row::rows) = (AST.Record (List.map helper row))::(res rows)
-    in
-      (record, res i)
-    end
+  fun eval (AST.Relation ls) = AST.Relation ls
+    | eval (AST.CartProd (rel1, rel2)) =
+        (case (eval rel1, eval rel2)
+          of (AST.Relation l1, AST.Relation l2) => AST.Relation (l1@l2)
+           | (_, _) => raise Fail "eval error - cartesian product")
+    | eval (AST.NatJoin (rel1, rel2)) =
+        (case (eval rel1, eval rel2)
+          of (AST.Relation l1, AST.Relation l2) => AST.Relation (removeDuplicates (l1@l2))
+           | (_, _) => raise Fail "eval error - natural join")
+    | eval (AST.Proj ("*"::[], rel)) = eval rel
+    | eval (AST.Proj ("*"::strs, rel)) = eval (AST.CartProd (eval rel, AST.Proj (strs, rel)))
+    | eval (AST.Proj (str::[], rel)) =
+        (case eval rel
+          of AST.Relation ls => AST.Relation (List.filter (fn (attr, ty) => attr = str) ls)
+           | _ => raise Fail "eval error - projection")
+    | eval (AST.Proj (str::strs, rel)) = eval (AST.CartProd (AST.Proj (str::[], rel), AST.Proj (strs, rel)))
+    | eval _ = raise Fail "improper input to eval"
 
 end

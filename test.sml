@@ -7,10 +7,9 @@ structure Test = struct
       val _ = OS.Process.system ("sqlite3 " ^ db ^ " " ^ cmd ^ " > result.txt")
       val rows = Scan.readlist "result.txt"
       val scan = Scan.scan cmd
-      val parse = Parse.parse scan
-      val typecheck = Typecheck.typeof (db, parse)
+      val parse = Parse.parse (db, scan)
     in
-      Eval.eval (typecheck, rows)
+      (Eval.eval parse, rows)
     end
 
 end

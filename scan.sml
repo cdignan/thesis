@@ -35,22 +35,33 @@ end = struct
       loop ins before TextIO.closeIn ins
     end
 
+  (* note: if user has any relations or attributes named "select", "where", etc.
+     this will cause problems *)
   fun scan cmd =
     let
       val stringList = separateRow (cmd, [#" ", #",", #"'", #"\n", #"\t"])
       fun toToken [] = []
         | toToken (s::ss) =
-            (case explode s
-              of [#"S", #"E", #"L", #"E", #"C", #"T"] => Token.Select :: toToken ss
-               | [#"s", #"e", #"l", #"e", #"c", #"t"] => Token.Select :: toToken ss
-               | [#"F", #"R", #"O", #"M"] => Token.From :: toToken ss
-               | [#"f", #"r", #"o", #"m"] => Token.From :: toToken ss
+            (case s
+              of "SELECT" => Token.Select :: toToken ss
+               | "select" => Token.Select :: toToken ss
+               | "FROM" => Token.From :: toToken ss
+               | "from" => Token.From :: toToken ss
+               | "NATURAL" =>
+                   (case ss
+                     of "JOIN"::sss => Token.NatJoin :: toToken sss
+                      | _ => raise Fail "expected JOIN after NATURAL")
+               | "natural" =>
+                   (case ss
+                     of "join"::sss => Token.NatJoin :: toToken sss
+                      | _ => raise Fail "expected JOIN after NATURAL")
+               | "WHERE" => []
+               | "where" => []
                | _ => Token.String s :: toToken ss)
     in
       toToken stringList
     end
 
-(* TODO: use the schema to go through result from readlist and convert to
-a record of terms, with the label being the label in the schema - the column name *)
+(* TODO: fix to support if two tables in select statement have the same attribute name *)
 
 end

@@ -4,9 +4,7 @@ Group
   structure Eval
   structure Parse
   structure Scan
-  structure Ty
   structure Token
-  structure Typecheck
 is
   $/basis.cm
   $/smlnj-lib.cm
@@ -15,6 +13,4 @@ is
   eval.sml
   parse.sml
   scan.sml
-  ty.sml
   token.sml
-  typecheck.sml
