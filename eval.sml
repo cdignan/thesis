@@ -4,13 +4,18 @@ structure Eval : sig
 
 end = struct
 
+  (* if schema, after a natural join, has two of the same attribute, this
+     function will remove one of them *)
   fun removeDuplicates [] = []
     | removeDuplicates ((a, b, c, d, e, f)::xs) =
         (a, b, c, d, e, f)::removeDuplicates(List.filter (fn (a', b', c', d', e', f') => b <> b') xs)
 
+  (* after all of the joining between tables and everything, this function changes the
+     column ids to be accurate in the result *)
   fun resetcid ([], _) = []
     | resetcid (((a, b, c, d, e, f) :: xs), n) = (n, b, c, d, e, f) :: resetcid (xs, n + 1)
 
+  (* evaluate each term *)
   fun eval (AST.Relation ls) = AST.Relation ls
     | eval (AST.CartProd (rel1, rel2)) =
         (case (eval rel1, eval rel2)

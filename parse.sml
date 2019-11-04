@@ -4,6 +4,7 @@ structure Parse : sig
 
 end = struct
 
+  (* this function gets the schema of one table *)
   fun getSchema (db : string, table : string) =
     let
       val _ = OS.Process.system ("sqlite3 " ^ db ^ " 'PRAGMA table_info(" ^ table ^ ")' > " ^ table ^ ".txt")
@@ -33,6 +34,8 @@ end = struct
     | toAttributes ((Token.String str) :: toks) = str :: (toAttributes toks)
     | toAttributes _ = raise Fail "only attributes can come after SELECT clause"
 
+  (* evaluates to cartesian product term if there is a list of tables after FROM
+     evaluates to natural join term if there is a natural join expression after FROM *)
   fun join (db, (Token.String str) :: []) = getSchema (db, str)
     | join (db, (Token.String str) :: Token.NatJoin :: toks) =
         AST.NatJoin ((getSchema (db, str)), join (db, toks))
@@ -40,6 +43,7 @@ end = struct
         AST.CartProd (getSchema (db, str1), join (db, (Token.String str2) :: toks))
     | join (_, _) = raise Fail "improper format after FROM clause"
 
+  (* takes in token list, returns term in relational algebra using above helper functions *)
   fun parse (db, Token.Select :: toks) = AST.Proj (toAttributes toks, parse (db, toks))
     | parse (db, Token.From :: toks) = join (db, toks)
     | parse (db, (Token.String _) :: toks) = parse (db, toks)

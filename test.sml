@@ -2,9 +2,13 @@ structure Test = struct
 
   (* type Test.run (db, cmd) in the SML repl *)
 
+  (* takes in a string list list, returns a Ty.ty list list
+     everything will be Ty.Text but that will be corrected in covert *)
   fun toText [] = []
     | toText (l :: ls) = (List.map (fn x => Ty.Text x) l) :: toText ls
 
+  (* take in one attribute with it's info, and one list of Ty.Text terms
+     return corrected list of Ty.ty terms *)
   fun convert ((n, b, c, d, e, f), l) =
     let
       fun conv ((n, b, "INTEGER", 1, e, f), (Ty.Text x) :: xs, 0) =
@@ -41,10 +45,12 @@ structure Test = struct
       conv ((n, b, c, d, e, f), l, n)
     end
 
+  (* convert a list of lists *)
   fun correctTypes ((n, b, c, d, e, f), []) = []
     | correctTypes ((n, b, c, d, e, f), l :: ls) =
         (convert ((n, b, c, d, e, f), l)) :: correctTypes ((n, b, c, d, e, f), ls)
 
+  (* convert a list of lists for multiple attributes *)
   fun totalCorrectTypes ([], l) = l
     | totalCorrectTypes ((n, b, c, d, e, f) :: rs, l) =
         totalCorrectTypes (rs, correctTypes ((n, b, c, d, e, f), l))
