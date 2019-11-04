@@ -6,7 +6,6 @@ structure Scan : sig
 end = struct
 
   (* function to separate one row into list of elements *)
-  (* can be used both for query and in reading a file (see readfile function) *)
   fun separateRow (row : string, delimiters : char list) =
     let
       fun process (strs, currChars, []) = strs@[implode currChars]
@@ -23,13 +22,30 @@ end = struct
       process ([], [], explode row)
     end
 
+  (* same function as above, except for rows in table_info output instead of cmd *)
+  fun separateList (row : string, delimiters : char list) =
+    let
+      fun process (strs, currChars, []) = strs@[implode currChars]
+        | process (strs, currChars, #"\n"::[]) = strs@[implode currChars]
+        | process (strs, [], c::nextChars) =
+            (case List.find (fn x => c = x) delimiters
+              of SOME x => process (strs@[""], [], nextChars) (* this line is the only difference *)
+               | NONE => process (strs, [c], nextChars))
+        | process (strs, currChars, c::nextChars) =
+            (case List.find (fn x => c = x) delimiters
+              of SOME x => process (strs@[implode currChars], [], nextChars)
+               | NONE => process (strs, currChars@[c], nextChars))
+    in
+      process ([], [], explode row)
+    end
+
   (* reads in query output and converts to string list list *)
   fun readlist infile =
     let
       val ins = TextIO.openIn infile
       fun loop ins =
         case TextIO.inputLine ins
-          of SOME row => separateRow (row, [#"|"]) :: loop ins
+          of SOME row => separateList (row, [#"|"]) :: loop ins
            | NONE => []
     in
       loop ins before TextIO.closeIn ins

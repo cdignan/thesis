@@ -9,7 +9,19 @@ end = struct
       val _ = OS.Process.system ("sqlite3 " ^ db ^ " 'PRAGMA table_info(" ^ table ^ ")' > " ^ table ^ ".txt")
       val schema = Scan.readlist (table ^ ".txt")
       fun loop [] = []
-        | loop (l::ls) = (List.nth (l, 1), List.nth (l, 2)) :: loop ls
+        | loop (l::ls) =
+            ((case Int.fromString (List.nth (l, 0))
+              of SOME n => n
+               | NONE => raise Fail "invalid column id"),
+            List.nth (l, 1),
+            List.nth (l, 2),
+            (case Int.fromString (List.nth (l, 3))
+              of SOME n => n
+               | NONE => raise Fail "invalid not null constaint"),
+            List.nth (l, 4),
+            (case Int.fromString (List.nth (l, 5))
+              of SOME n => n
+               | NONE => raise Fail "invalid primary key constraint")) :: loop ls
     in
       AST.Relation (loop schema)
     end
