@@ -9,55 +9,55 @@ structure Test = struct
 
   (* take in one attribute with it's info, and one list of Ty.Text terms
      return corrected list of Ty.ty terms *)
-  fun convert ((n, b, c, d, e, f), l) =
+  fun convert (((a, n), b, c, d, e, f, g), l) =
     let
-      fun conv ((n, b, "INTEGER", 1, e, f), (Ty.Text x) :: xs, 0) =
+      fun conv ((_, _, (_, "INTEGER"), (_, 1), _, _, _), (Ty.Text x) :: xs, 0) =
             (case Int.fromString x
               of SOME x' => (Ty.Int x') :: xs
                | NONE => raise Fail "expected int")
-        | conv ((n, b, "INTEGER", d, e, 1), (Ty.Text x) :: xs, 0) =
+        | conv ((_, _, (_, "INTEGER"), _, _, (_, 1), _), (Ty.Text x) :: xs, 0) =
             (case Int.fromString x
               of SOME x' => (Ty.Int x') :: xs
                | NONE => raise Fail "expected int")
-        | conv ((n, b, "INTEGER", d, e, 2), (Ty.Text x) :: xs, 0) =
+        | conv ((_, _, (_, "INTEGER"), _, _, (_, 2), _), (Ty.Text x) :: xs, 0) =
             (case Int.fromString x
               of SOME x' => (Ty.Int x') :: xs
                | NONE => raise Fail "expected int")
-        | conv ((n, b, "INTEGER", d, e, f), (Ty.Text x) :: xs, 0) =
+        | conv ((_, _, (_, "INTEGER"), _, _, _, _), (Ty.Text x) :: xs, 0) =
             (case Int.fromString x
               of SOME x' => (Ty.Option (Ty.Int x')) :: xs
                | NONE => raise Fail "expected int")
-        | conv ((n, b, "TEXT", 1, e, f), x :: xs, 0) = x :: xs
-        | conv ((n, b, "TEXT", d, e, 1), x :: xs, 0) = x :: xs
-        | conv ((n, b, "TEXT", d, e, 2), x :: xs, 0) = x :: xs
-        | conv ((n, b, "TEXT", d, e, f), x :: xs, 0) = (Ty.Option x) :: xs
-        | conv ((n, b, "DATE", 1, e, f), (Ty.Text x) :: xs, 0) = (Ty.Date x) :: xs
-        | conv ((n, b, "DATE", d, e, 1), (Ty.Text x) :: xs, 0) = (Ty.Date x) :: xs
-        | conv ((n, b, "DATE", d, e, 2), (Ty.Text x) :: xs, 0) = (Ty.Date x) :: xs
-        | conv ((n, b, "DATE", d, e, f), (Ty.Text x) :: xs, 0) = (Ty.Option (Ty.Date x)) :: xs
-        | conv ((n, b, "TIME", 1, e, f), (Ty.Text x) :: xs, 0) = (Ty.Time x) :: xs
-        | conv ((n, b, "TIME", d, e, 1), (Ty.Text x) :: xs, 0) = (Ty.Time x) :: xs
-        | conv ((n, b, "TIME", d, e, 2), (Ty.Text x) :: xs, 0) = (Ty.Time x) :: xs
-        | conv ((n, b, "TIME", d, e, f), (Ty.Text x) :: xs, 0) = (Ty.Option (Ty.Time x)) :: xs
-        | conv ((n, b, c, d, e, f), x :: xs, k) = x :: conv ((n, b, c, d, e, f), xs, k - 1)
+        | conv ((_, _, (_, "TEXT"), (_, 1), _, _, _), x :: xs, 0) = x :: xs
+        | conv ((_, _, (_, "TEXT"), _, _, (_, 1), _), x :: xs, 0) = x :: xs
+        | conv ((_, _, (_, "TEXT"), _, _, (_, 2), _), x :: xs, 0) = x :: xs
+        | conv ((_, _, (_, "TEXT"), _, _, _, _), x :: xs, 0) = (Ty.Option x) :: xs
+        | conv ((_, _, (_, "DATE"), (_, 1), _, _, _), (Ty.Text x) :: xs, 0) = (Ty.Date x) :: xs
+        | conv ((_, _, (_, "DATE"), _, _, (_, 1), _), (Ty.Text x) :: xs, 0) = (Ty.Date x) :: xs
+        | conv ((_, _, (_, "DATE"), _, _, (_, 2), _), (Ty.Text x) :: xs, 0) = (Ty.Date x) :: xs
+        | conv ((_, _, (_, "DATE"), _, _, _, _), (Ty.Text x) :: xs, 0) = (Ty.Option (Ty.Date x)) :: xs
+        | conv ((_, _, (_, "TIME"), (_, 1), _, _, _), (Ty.Text x) :: xs, 0) = (Ty.Time x) :: xs
+        | conv ((_, _, (_, "TIME"), _, _, (_, 1), _), (Ty.Text x) :: xs, 0) = (Ty.Time x) :: xs
+        | conv ((_, _, (_, "TIME"), _, _, (_, 2), _), (Ty.Text x) :: xs, 0) = (Ty.Time x) :: xs
+        | conv ((_, _, (_, "TIME"), _, _, _, _), (Ty.Text x) :: xs, 0) = (Ty.Option (Ty.Time x)) :: xs
+        | conv (t, x :: xs, k) = x :: conv (t, xs, k - 1)
         | conv (_, _, _) = raise Fail "invalid input"
     in
-      conv ((n, b, c, d, e, f), l, n)
+      conv (((a, n), b, c, d, e, f, g), l, n)
     end
 
   (* convert a list of lists *)
-  fun correctTypes ((n, b, c, d, e, f), []) = []
-    | correctTypes ((n, b, c, d, e, f), l :: ls) =
-        (convert ((n, b, c, d, e, f), l)) :: correctTypes ((n, b, c, d, e, f), ls)
+  fun correctTypes (_, []) = []
+    | correctTypes (t, l :: ls) =
+        (convert (t, l)) :: correctTypes (t, ls)
 
   (* convert a list of lists for multiple attributes *)
   fun totalCorrectTypes ([], l) = l
-    | totalCorrectTypes ((n, b, c, d, e, f) :: rs, l) =
-        totalCorrectTypes (rs, correctTypes ((n, b, c, d, e, f), l))
+    | totalCorrectTypes (t :: ts, l) =
+        totalCorrectTypes (ts, correctTypes (t, l))
 
   fun run (db, cmd) =
     let
-      val _ = OS.Process.system ("sqlite3 " ^ db ^ " " ^ cmd ^ " > result.txt")
+      val _ = OS.Process.system ("sqlite3 " ^ db ^ " " ^ "\"" ^ cmd ^ "\"" ^ " > result.txt")
       val rows = toText (Scan.readlist "result.txt")
       val scan = Scan.scan cmd
       val parse = Parse.parse (db, scan)

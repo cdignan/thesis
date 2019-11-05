@@ -1,7 +1,8 @@
 structure Scan : sig
 
-  val readlist : string -> string list list
-  val scan     : string -> Token.token list
+  val separateRow : string * char list -> string list
+  val readlist    : string -> string list list
+  val scan        : string -> Token.token list
 
 end = struct
 

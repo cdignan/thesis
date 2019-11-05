@@ -11,18 +11,22 @@ end = struct
       val schema = Scan.readlist (table ^ ".txt")
       fun loop [] = []
         | loop (l::ls) =
-            ((case Int.fromString (List.nth (l, 0))
+            (("Column ID",
+            (case Int.fromString (List.nth (l, 0))
               of SOME n => n
-               | NONE => raise Fail "invalid column id"),
-            List.nth (l, 1),
-            List.nth (l, 2),
+               | NONE => raise Fail "invalid column id")),
+            ("Attribute", List.nth (l, 1)),
+            ("Type", List.nth (l, 2)),
+            ("Not Null",
             (case Int.fromString (List.nth (l, 3))
               of SOME n => n
-               | NONE => raise Fail "invalid not null constaint"),
-            List.nth (l, 4),
+               | NONE => raise Fail "invalid not null constaint")),
+            ("Default Value", List.nth (l, 4)),
+            ("Primary Key",
             (case Int.fromString (List.nth (l, 5))
               of SOME n => n
-               | NONE => raise Fail "invalid primary key constraint")) :: loop ls
+               | NONE => raise Fail "invalid primary key constraint")),
+            ("Tables", [table])) :: loop ls
     in
       AST.Relation (loop schema)
     end
