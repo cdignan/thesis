@@ -11,15 +11,15 @@ structure Test = struct
      return corrected list of Ty.ty terms *)
   fun convert (((a, n), b, c, d, e, f, g), l) =
     let
-      fun conv ((_, _, (_, "INTEGER"), (_, 1), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) =
+      fun conv ((_, _, (_, "INTEGER"), (_, true), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) =
             (case Int.fromString x
               of SOME x' => (Ty.Type (Ty.Int x')) :: xs
                | NONE => raise Fail "expected int")
-        | conv ((_, _, (_, "INTEGER"), _, _, (_, 1), _), (Ty.Type (Ty.Text x)) :: xs, 0) =
+        | conv ((_, _, (_, "INTEGER"), _, _, (_, SOME AST.PK), _), (Ty.Type (Ty.Text x)) :: xs, 0) =
             (case Int.fromString x
               of SOME x' => (Ty.Type (Ty.Int x')) :: xs
                | NONE => raise Fail "expected int")
-        | conv ((_, _, (_, "INTEGER"), _, _, (_, 2), _), (Ty.Type (Ty.Text x)) :: xs, 0) =
+        | conv ((_, _, (_, "INTEGER"), _, _, (_, SOME (AST.FK _)), _), (Ty.Type (Ty.Text x)) :: xs, 0) =
             (case Int.fromString x
               of SOME x' => (Ty.Type (Ty.Int x')) :: xs
                | NONE => raise Fail "expected int")
@@ -27,19 +27,19 @@ structure Test = struct
             (case Int.fromString x
               of SOME x' => (Ty.Option (SOME (Ty.Int x'))) :: xs
                | NONE => (Ty.Option NONE) :: xs)
-        | conv ((_, _, (_, "TEXT"), (_, 1), _, _, _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
-        | conv ((_, _, (_, "TEXT"), _, _, (_, 1), _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
-        | conv ((_, _, (_, "TEXT"), _, _, (_, 2), _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
+        | conv ((_, _, (_, "TEXT"), (_, true), _, _, _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
+        | conv ((_, _, (_, "TEXT"), _, _, (_, SOME AST.PK), _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
+        | conv ((_, _, (_, "TEXT"), _, _, (_, SOME (AST.FK _)), _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
         | conv ((_, _, (_, "TEXT"), _, _, _, _), (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
         | conv ((_, _, (_, "TEXT"), _, _, _, _), (Ty.Type x) :: xs, 0) = (Ty.Option (SOME x)) :: xs
-        | conv ((_, _, (_, "DATE"), (_, 1), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
-        | conv ((_, _, (_, "DATE"), _, _, (_, 1), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
-        | conv ((_, _, (_, "DATE"), _, _, (_, 2), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
+        | conv ((_, _, (_, "DATE"), (_, true), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
+        | conv ((_, _, (_, "DATE"), _, _, (_, SOME AST.PK), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
+        | conv ((_, _, (_, "DATE"), _, _, (_, SOME (AST.FK _)), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
         | conv ((_, _, (_, "DATE"), _, _, _, _), (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
         | conv ((_, _, (_, "DATE"), _, _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Option (SOME (Ty.Date x))) :: xs
-        | conv ((_, _, (_, "TIME"), (_, 1), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
-        | conv ((_, _, (_, "TIME"), _, _, (_, 1), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
-        | conv ((_, _, (_, "TIME"), _, _, (_, 2), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
+        | conv ((_, _, (_, "TIME"), (_, true), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
+        | conv ((_, _, (_, "TIME"), _, _, (_, SOME AST.PK), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
+        | conv ((_, _, (_, "TIME"), _, _, (_, SOME (AST.FK _)), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
         | conv ((_, _, (_, "TIME"), _, _, _, _), (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
         | conv ((_, _, (_, "TIME"), _, _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Option (SOME (Ty.Time x))) :: xs
         | conv (t, x :: xs, k) = x :: conv (t, xs, k - 1)

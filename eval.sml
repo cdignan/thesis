@@ -15,9 +15,14 @@ end = struct
            | _ => raise Fail "currently don't support when a relation has multiple columns of same name in natural join")
 
   (* after all of the joining between tables and everything, this function changes the
-     column ids to be accurate in the result *)
+     column ids and pks to be accurate in the result *)
   fun resetcid ([], _) = []
-    | resetcid ((((a, a'), b, c, d, e, f, g) :: xs), n) = ((a, n), b, c, d, e, f, g) :: resetcid (xs, n + 1)
+    | resetcid ((((a, _), b, c, (d, _), e, (f, SOME AST.PK), g) :: xs), n) =
+        ((a, n), b, c, (d, true), e, (f, NONE), g) :: resetcid (xs, n + 1)
+    | resetcid ((((a, _), b, c, (d, _), e, (f, SOME (AST.FK _)), g) :: xs), n) =
+        ((a, n), b, c, (d, true), e, (f, NONE), g) :: resetcid (xs, n + 1)
+    | resetcid ((((a, _), b, c, d, e, (f, _), g) :: xs), n) =
+        ((a, n), b, c, d, e, (f, NONE), g) :: resetcid (xs, n + 1)
 
   (* evaluate each term *)
   fun eval (AST.Relation ls) = AST.Relation ls

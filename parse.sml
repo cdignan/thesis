@@ -9,8 +9,10 @@ end = struct
     let
       val _ = OS.Process.system ("sqlite3 -noheader " ^ db ^ " 'PRAGMA table_info(" ^ table ^ ")' > " ^ table ^ ".txt")
       val schema = Scan.readlist (table ^ ".txt")
-      fun loop [] = []
-        | loop (l::ls) =
+      val _ = OS.Process.system ("sqlite3 -noheader " ^ db ^ " 'PRAGMA foreign_key_list(" ^ table ^ ")' > fkey.txt")
+      val fkey = Scan.readlist "fkey.txt"
+      fun loop ([], fkey) = []
+        | loop (l::ls, fkey) =
             (("Column ID",
             (case Int.fromString (List.nth (l, 0))
               of SOME n => n
@@ -19,16 +21,32 @@ end = struct
             ("Type", List.nth (l, 2)),
             ("Not Null",
             (case Int.fromString (List.nth (l, 3))
-              of SOME n => n
-               | NONE => raise Fail "invalid not null constaint")),
+              of SOME 0 => false
+               | SOME 1 => true
+               | _ => raise Fail "invalid not null constaint")),
             ("Default Value", List.nth (l, 4)),
             ("Primary Key",
             (case Int.fromString (List.nth (l, 5))
-              of SOME n => n
-               | NONE => raise Fail "invalid primary key constraint")),
-            ("Tables", [table])) :: loop ls
+              of SOME 0 => SOME AST.NotPK
+               | SOME 1 => SOME AST.PK
+               | SOME 2 =>
+                   (case List.filter (fn sublist => List.nth (sublist, 3) = List.nth (l, 1)) fkey
+                     of [_, b, c, d, e, f, g, h]  :: [] =>
+                          SOME (AST.FK (("seq",
+                                        (case Int.fromString b
+                                          of SOME n => n
+                                           | NONE => raise Fail "invalid seq #")),
+                                        ("table", c),
+                                        ("from", d),
+                                        ("to", e),
+                                        ("on_update", f),
+                                        ("on_delete", g),
+                                        ("match", h)))
+                      | _ => raise Fail "invalid foreign key")
+               | _ => raise Fail "invalid primary key constraint")),
+            ("Tables", [table])) :: loop (ls, fkey)
     in
-      AST.Relation (loop schema)
+      AST.Relation (loop (schema, fkey))
     end
 
   (* take in tokens, return list of strings (attributes)
