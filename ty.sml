@@ -1,10 +1,13 @@
 structure Ty = struct
 
-  datatype ty
+  datatype groundTy
     = Int of int
     | Text of string
     | Date of string
     | Time of string
-    | Option of ty
+
+  datatype ty
+    = Type of groundTy
+    | Option of groundTy option
 
 end

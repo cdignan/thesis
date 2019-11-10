@@ -79,6 +79,4 @@ end = struct
       toToken stringList
     end
 
-(* TODO: fix to support if two tables in select statement have the same attribute name *)
-
 end

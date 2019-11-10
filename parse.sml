@@ -7,7 +7,7 @@ end = struct
   (* this function gets the schema of one table *)
   fun getSchema (db : string, table : string) =
     let
-      val _ = OS.Process.system ("sqlite3 " ^ db ^ " 'PRAGMA table_info(" ^ table ^ ")' > " ^ table ^ ".txt")
+      val _ = OS.Process.system ("sqlite3 -noheader " ^ db ^ " 'PRAGMA table_info(" ^ table ^ ")' > " ^ table ^ ".txt")
       val schema = Scan.readlist (table ^ ".txt")
       fun loop [] = []
         | loop (l::ls) =

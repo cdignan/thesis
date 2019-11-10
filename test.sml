@@ -5,40 +5,43 @@ structure Test = struct
   (* takes in a string list list, returns a Ty.ty list list
      everything will be Ty.Text but that will be corrected in covert *)
   fun toText [] = []
-    | toText (l :: ls) = (List.map (fn x => Ty.Text x) l) :: toText ls
+    | toText (l :: ls) = (List.map (fn x => Ty.Type (Ty.Text x)) l) :: toText ls
 
   (* take in one attribute with it's info, and one list of Ty.Text terms
      return corrected list of Ty.ty terms *)
   fun convert (((a, n), b, c, d, e, f, g), l) =
     let
-      fun conv ((_, _, (_, "INTEGER"), (_, 1), _, _, _), (Ty.Text x) :: xs, 0) =
+      fun conv ((_, _, (_, "INTEGER"), (_, 1), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) =
             (case Int.fromString x
-              of SOME x' => (Ty.Int x') :: xs
+              of SOME x' => (Ty.Type (Ty.Int x')) :: xs
                | NONE => raise Fail "expected int")
-        | conv ((_, _, (_, "INTEGER"), _, _, (_, 1), _), (Ty.Text x) :: xs, 0) =
+        | conv ((_, _, (_, "INTEGER"), _, _, (_, 1), _), (Ty.Type (Ty.Text x)) :: xs, 0) =
             (case Int.fromString x
-              of SOME x' => (Ty.Int x') :: xs
+              of SOME x' => (Ty.Type (Ty.Int x')) :: xs
                | NONE => raise Fail "expected int")
-        | conv ((_, _, (_, "INTEGER"), _, _, (_, 2), _), (Ty.Text x) :: xs, 0) =
+        | conv ((_, _, (_, "INTEGER"), _, _, (_, 2), _), (Ty.Type (Ty.Text x)) :: xs, 0) =
             (case Int.fromString x
-              of SOME x' => (Ty.Int x') :: xs
+              of SOME x' => (Ty.Type (Ty.Int x')) :: xs
                | NONE => raise Fail "expected int")
-        | conv ((_, _, (_, "INTEGER"), _, _, _, _), (Ty.Text x) :: xs, 0) =
+        | conv ((_, _, (_, "INTEGER"), _, _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) =
             (case Int.fromString x
-              of SOME x' => (Ty.Option (Ty.Int x')) :: xs
-               | NONE => raise Fail "expected int")
-        | conv ((_, _, (_, "TEXT"), (_, 1), _, _, _), x :: xs, 0) = x :: xs
-        | conv ((_, _, (_, "TEXT"), _, _, (_, 1), _), x :: xs, 0) = x :: xs
-        | conv ((_, _, (_, "TEXT"), _, _, (_, 2), _), x :: xs, 0) = x :: xs
-        | conv ((_, _, (_, "TEXT"), _, _, _, _), x :: xs, 0) = (Ty.Option x) :: xs
-        | conv ((_, _, (_, "DATE"), (_, 1), _, _, _), (Ty.Text x) :: xs, 0) = (Ty.Date x) :: xs
-        | conv ((_, _, (_, "DATE"), _, _, (_, 1), _), (Ty.Text x) :: xs, 0) = (Ty.Date x) :: xs
-        | conv ((_, _, (_, "DATE"), _, _, (_, 2), _), (Ty.Text x) :: xs, 0) = (Ty.Date x) :: xs
-        | conv ((_, _, (_, "DATE"), _, _, _, _), (Ty.Text x) :: xs, 0) = (Ty.Option (Ty.Date x)) :: xs
-        | conv ((_, _, (_, "TIME"), (_, 1), _, _, _), (Ty.Text x) :: xs, 0) = (Ty.Time x) :: xs
-        | conv ((_, _, (_, "TIME"), _, _, (_, 1), _), (Ty.Text x) :: xs, 0) = (Ty.Time x) :: xs
-        | conv ((_, _, (_, "TIME"), _, _, (_, 2), _), (Ty.Text x) :: xs, 0) = (Ty.Time x) :: xs
-        | conv ((_, _, (_, "TIME"), _, _, _, _), (Ty.Text x) :: xs, 0) = (Ty.Option (Ty.Time x)) :: xs
+              of SOME x' => (Ty.Option (SOME (Ty.Int x'))) :: xs
+               | NONE => (Ty.Option NONE) :: xs)
+        | conv ((_, _, (_, "TEXT"), (_, 1), _, _, _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
+        | conv ((_, _, (_, "TEXT"), _, _, (_, 1), _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
+        | conv ((_, _, (_, "TEXT"), _, _, (_, 2), _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
+        | conv ((_, _, (_, "TEXT"), _, _, _, _), (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
+        | conv ((_, _, (_, "TEXT"), _, _, _, _), (Ty.Type x) :: xs, 0) = (Ty.Option (SOME x)) :: xs
+        | conv ((_, _, (_, "DATE"), (_, 1), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
+        | conv ((_, _, (_, "DATE"), _, _, (_, 1), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
+        | conv ((_, _, (_, "DATE"), _, _, (_, 2), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
+        | conv ((_, _, (_, "DATE"), _, _, _, _), (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
+        | conv ((_, _, (_, "DATE"), _, _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Option (SOME (Ty.Date x))) :: xs
+        | conv ((_, _, (_, "TIME"), (_, 1), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
+        | conv ((_, _, (_, "TIME"), _, _, (_, 1), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
+        | conv ((_, _, (_, "TIME"), _, _, (_, 2), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
+        | conv ((_, _, (_, "TIME"), _, _, _, _), (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
+        | conv ((_, _, (_, "TIME"), _, _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Option (SOME (Ty.Time x))) :: xs
         | conv (t, x :: xs, k) = x :: conv (t, xs, k - 1)
         | conv (_, _, _) = raise Fail "invalid input"
     in
@@ -57,7 +60,7 @@ structure Test = struct
 
   fun run (db, cmd) =
     let
-      val _ = OS.Process.system ("sqlite3 " ^ db ^ " " ^ "\"" ^ cmd ^ "\"" ^ " > result.txt")
+      val _ = OS.Process.system ("sqlite3 -noheader " ^ db ^ " " ^ "\"" ^ cmd ^ "\"" ^ " > result.txt")
       val rows = toText (Scan.readlist "result.txt")
       val scan = Scan.scan cmd
       val parse = Parse.parse (db, scan)
