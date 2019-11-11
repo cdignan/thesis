@@ -14,6 +14,8 @@ structure AST = struct
                   (string * bool) * (string * string) * (string * pk option) * (string * string list)) list
     | CartProd of (term * term)
     | NatJoin of (term * term)
-    | Proj of (string list * term)
+    (* first string is original attribute, second string is renamed attribute *)
+    | Proj of ((string * string) list * term)
+    | Union of (term * term)
 
 end

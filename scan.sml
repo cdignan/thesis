@@ -58,23 +58,25 @@ end = struct
     let
       val stringList = separateRow (cmd, [#" ", #",", #"'", #"\n", #"\t"])
       fun toToken [] = []
-        | toToken (s::ss) =
-            (case s
-              of "SELECT" => Token.Select :: toToken ss
-               | "select" => Token.Select :: toToken ss
-               | "FROM" => Token.From :: toToken ss
-               | "from" => Token.From :: toToken ss
-               | "NATURAL" =>
-                   (case ss
-                     of "JOIN"::sss => Token.NatJoin :: toToken sss
-                      | _ => raise Fail "expected JOIN after NATURAL")
-               | "natural" =>
-                   (case ss
-                     of "join"::sss => Token.NatJoin :: toToken sss
-                      | _ => raise Fail "expected JOIN after NATURAL")
-               | "WHERE" => []
-               | "where" => []
-               | _ => Token.String s :: toToken ss)
+        | toToken ("SELECT" :: ss) = Token.Select :: toToken ss
+        | toToken ("select" :: ss) = Token.Select :: toToken ss
+        | toToken ("AS" :: ss) = Token.As :: toToken ss
+        | toToken ("as" :: ss) = Token.As :: toToken ss
+        | toToken ("FROM" :: ss) = Token.From :: toTokenAfterFrom ss
+        | toToken ("from" :: ss) = Token.From :: toTokenAfterFrom ss
+        | toToken (s :: ss) = (Token.String s) :: toToken ss
+      and toTokenAfterFrom [] = []
+        | toTokenAfterFrom ("UNION" :: ss) = Token.Union :: toToken ss
+        | toTokenAfterFrom ("union" :: ss) = Token.Union :: toToken ss
+        | toTokenAfterFrom ("NATURAL" :: "JOIN" :: ss) = Token.NatJoin :: toTokenAfterFrom ss
+        | toTokenAfterFrom ("natural" :: "join" :: ss) = Token.NatJoin :: toTokenAfterFrom ss
+        | toTokenAfterFrom ("WHERE" :: ss) = toTokenAfterWhere ss
+        | toTokenAfterFrom ("where" :: ss) = toTokenAfterWhere ss
+        | toTokenAfterFrom (s :: ss) = (Token.String s) :: toTokenAfterFrom ss
+      and toTokenAfterWhere ("UNION" :: ss) = Token.Union :: toToken ss
+        | toTokenAfterWhere ("union" :: ss) = Token.Union :: toToken ss
+        | toTokenAfterWhere [] = []
+        | toTokenAfterWhere (_ :: ss) = toTokenAfterWhere ss
     in
       toToken stringList
     end

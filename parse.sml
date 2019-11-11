@@ -53,22 +53,33 @@ end = struct
      note that this function takes in all tokens, but in essence can be considered to only be
      looking at the token strings - once it gets to Token.From, it just discards the rest *)
   fun toAttributes (Token.From :: toks) = []
-    | toAttributes ((Token.String str) :: toks) = str :: (toAttributes toks)
+    | toAttributes ((Token.String str1) :: Token.As :: (Token.String str2) :: toks) =
+        (str1, str2) :: (toAttributes toks)
+    | toAttributes ((Token.String str) :: toks) = (str, str) :: (toAttributes toks)
     | toAttributes _ = raise Fail "only attributes can come after SELECT clause"
 
   (* evaluates to cartesian product term if there is a list of tables after FROM
      evaluates to natural join term if there is a natural join expression after FROM *)
   fun join (db, (Token.String str) :: []) = getSchema (db, str)
+    | join (db, (Token.String str) :: Token.Union :: _) = getSchema (db, str)
     | join (db, (Token.String str) :: Token.NatJoin :: toks) =
         AST.NatJoin ((getSchema (db, str)), join (db, toks))
     | join (db, (Token.String str1) :: (Token.String str2) :: toks) =
         AST.CartProd (getSchema (db, str1), join (db, (Token.String str2) :: toks))
     | join (_, _) = raise Fail "improper format after FROM clause"
 
+  fun getUnionList (Token.Union :: toks) = toks
+    | getUnionList [] = []
+    | getUnionList (tok :: toks) = getUnionList toks
+
   (* takes in token list, returns term in relational algebra using above helper functions *)
-  fun parse (db, Token.Select :: toks) = AST.Proj (toAttributes toks, parse (db, toks))
+  fun parse (db, Token.Select :: toks) =
+        (case getUnionList toks
+          of [] => AST.Proj (toAttributes toks, parse (db, toks))
+           | toks' => AST.Union (AST.Proj (toAttributes toks, parse (db, toks)), parse (db, toks')))
     | parse (db, Token.From :: toks) = join (db, toks)
     | parse (db, (Token.String _) :: toks) = parse (db, toks)
+    | parse (db, Token.As :: toks) = parse (db, toks)
     | parse (_, _) = raise Fail "parse error"
 
 end
