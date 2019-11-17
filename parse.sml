@@ -7,44 +7,44 @@ end = struct
   (* this function gets the schema of one table *)
   fun getSchema (db : string, table : string) =
     let
-      val _ = OS.Process.system ("sqlite3 -noheader " ^ db ^ " 'PRAGMA table_info(" ^ table ^ ")' > " ^ table ^ ".txt")
-      val schema = Scan.readlist (table ^ ".txt")
-      val _ = OS.Process.system ("sqlite3 -noheader " ^ db ^ " 'PRAGMA foreign_key_list(" ^ table ^ ")' > fkey.txt")
-      val fkey = Scan.readlist "fkey.txt"
+      val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA table_info(" ^ table ^ ")' > " ^ table ^ ".csv")
+      val schema = Scan.readlist (table ^ ".csv")
+      val _ = OS.Process.system ("sqlite3 -noheader " ^ db ^ " 'PRAGMA foreign_key_list(" ^ table ^ ")' > fkey.csv")
+      val fkey = Scan.readlist "fkey.csv"
       fun loop ([], fkey) = []
         | loop (l::ls, fkey) =
-            (("Column ID",
+            {cid =
             (case Int.fromString (List.nth (l, 0))
               of SOME n => n
-               | NONE => raise Fail "invalid column id")),
-            ("Attribute", List.nth (l, 1)),
-            ("Type", List.nth (l, 2)),
-            ("Not Null",
+               | NONE => raise Fail "invalid column id"),
+            attribute = List.nth (l, 1),
+            ty = List.nth (l, 2),
+            notnull =
             (case Int.fromString (List.nth (l, 3))
               of SOME 0 => false
                | SOME 1 => true
-               | _ => raise Fail "invalid not null constaint")),
-            ("Default Value", List.nth (l, 4)),
-            ("Primary Key",
+               | _ => raise Fail "invalid not null constaint"),
+            dflt_val = List.nth (l, 4),
+            primary_key =
             (case Int.fromString (List.nth (l, 5))
               of SOME 0 => SOME AST.NotPK
                | SOME 1 => SOME AST.PK
                | SOME 2 =>
                    (case List.filter (fn sublist => List.nth (sublist, 3) = List.nth (l, 1)) fkey
                      of [_, b, c, d, e, f, g, h]  :: [] =>
-                          SOME (AST.FK (("seq",
-                                        (case Int.fromString b
-                                          of SOME n => n
-                                           | NONE => raise Fail "invalid seq #")),
-                                        ("table", c),
-                                        ("from", d),
-                                        ("to", e),
-                                        ("on_update", f),
-                                        ("on_delete", g),
-                                        ("match", h)))
+                          SOME (AST.FK {seq =
+                                       (case Int.fromString b
+                                         of SOME n => n
+                                          | NONE => raise Fail "invalid seq #"),
+                                        table = c,
+                                        from = d,
+                                        to = e,
+                                        on_update = f,
+                                        on_delete = g,
+                                        matc = h})
                       | _ => raise Fail "invalid foreign key")
-               | _ => raise Fail "invalid primary key constraint")),
-            ("Tables", [table])) :: loop (ls, fkey)
+               | _ => raise Fail "invalid primary key constraint"),
+            tables = [table]} :: loop (ls, fkey)
     in
       AST.Relation (loop (schema, fkey))
     end

@@ -60,8 +60,8 @@ structure Test = struct
 
   fun run (db, cmd) =
     let
-      val _ = OS.Process.system ("sqlite3 -noheader " ^ db ^ " " ^ "\"" ^ cmd ^ "\"" ^ " > result.txt")
-      val rows = toText (Scan.readlist "result.txt")
+      val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " " ^ "\"" ^ cmd ^ "\"" ^ " > result.csv")
+      val rows = toText (Scan.readlist "result.csv")
       val scan = Scan.scan cmd
       val parse = Parse.parse (db, scan)
       val eval = Eval.eval parse

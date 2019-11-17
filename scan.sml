@@ -46,7 +46,7 @@ end = struct
       val ins = TextIO.openIn infile
       fun loop ins =
         case TextIO.inputLine ins
-          of SOME row => separateList (row, [#"|"]) :: loop ins
+          of SOME row => separateList (row, [#","]) :: loop ins
            | NONE => []
     in
       loop ins before TextIO.closeIn ins
