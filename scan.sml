@@ -58,8 +58,10 @@ end = struct
     let
       val stringList = separateRow (cmd, [#" ", #",", #"'", #"\n", #"\t"])
       fun toToken [] = []
-        | toToken ("SELECT" :: ss) = Token.Select :: toToken ss
-        | toToken ("select" :: ss) = Token.Select :: toToken ss
+        | toToken ("SELECT" :: "DISTINCT" :: ss) = Token.SelectDistinct :: toToken ss
+        | toToken ("select" :: "distinct" :: ss) = Token.SelectDistinct :: toToken ss
+        | toToken ("SELECT" :: ss) = Token.SelectAll :: toToken ss
+        | toToken ("select" :: ss) = Token.SelectAll :: toToken ss
         | toToken ("AS" :: ss) = Token.As :: toToken ss
         | toToken ("as" :: ss) = Token.As :: toToken ss
         | toToken ("FROM" :: ss) = Token.From :: toTokenAfterFrom ss

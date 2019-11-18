@@ -12,31 +12,30 @@ structure Test = struct
   fun convert (e, l) =
     let
       fun conv (_, (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
-        | conv (e : {cid: int, attribute: string, ty: string, notnull: bool, dflt_val: string,
+        | conv (e : {cid: int, attribute: string, ty: AST.types, notnull: bool, dflt_val: string,
                     primary_key: AST.pk option, foreign_key: AST.fk option, unique: bool, tables: string list}, (Ty.Type (Ty.Text x)) :: xs, 0) =
             (case (#ty e, #notnull e, #primary_key e)
-              of ("INTEGER", true, _) =>
+              of (AST.Int, true, _) =>
                    (case Int.fromString x
                      of SOME x' => (Ty.Type (Ty.Int x')) :: xs
                       | NONE => raise Fail "expected int")
-               | ("INTEGER", _, SOME (AST.PK _)) =>
+               | (AST.Int, _, SOME (AST.PK _)) =>
                    (case Int.fromString x
                      of SOME x' => (Ty.Type (Ty.Int x')) :: xs
                       | NONE => raise Fail "expected int")
-               | ("INTEGER", _, _) =>
+               | (AST.Int, _, _) =>
                    (case Int.fromString x
                      of SOME x' => (Ty.Option (SOME (Ty.Int x'))) :: xs
                       | NONE => (Ty.Option NONE) :: xs)
-               | ("TEXT", true, _) => (Ty.Type (Ty.Text x)) :: xs
-               | ("TEXT", _, SOME (AST.PK _)) => (Ty.Type (Ty.Text x)) :: xs
-               | ("TEXT", _, _) => (Ty.Option (SOME (Ty.Text x))) :: xs
-               | ("DATE", true, _) => (Ty.Type (Ty.Date x)) :: xs
-               | ("DATE", _, SOME (AST.PK _)) => (Ty.Type (Ty.Date x)) :: xs
-               | ("DATE", _, _) => (Ty.Option (SOME (Ty.Date x))) :: xs
-               | ("TIME", true, _) => (Ty.Type (Ty.Time x)) :: xs
-               | ("TIME", _, SOME (AST.PK _)) => (Ty.Type (Ty.Time x)) :: xs
-               | ("TIME", _, _) => (Ty.Option (SOME (Ty.Time x))) :: xs
-               | (_, _, _) => raise Fail "convert: type not supported")
+               | (AST.Text, true, _) => (Ty.Type (Ty.Text x)) :: xs
+               | (AST.Text, _, SOME (AST.PK _)) => (Ty.Type (Ty.Text x)) :: xs
+               | (AST.Text, _, _) => (Ty.Option (SOME (Ty.Text x))) :: xs
+               | (AST.Date, true, _) => (Ty.Type (Ty.Date x)) :: xs
+               | (AST.Date, _, SOME (AST.PK _)) => (Ty.Type (Ty.Date x)) :: xs
+               | (AST.Date, _, _) => (Ty.Option (SOME (Ty.Date x))) :: xs
+               | (AST.Time, true, _) => (Ty.Type (Ty.Time x)) :: xs
+               | (AST.Time, _, SOME (AST.PK _)) => (Ty.Type (Ty.Time x)) :: xs
+               | (AST.Time, _, _) => (Ty.Option (SOME (Ty.Time x))) :: xs)
         | conv (e, x :: xs, k) = x :: conv (e, xs, k - 1)
         | conv (_, _, _) = raise Fail "invalid input"
     in

@@ -1,5 +1,11 @@
 structure AST = struct
 
+  datatype types
+    = Int
+    | Text
+    | Date
+    | Time
+
   datatype pk
     = NotPK
     | PK of int
@@ -13,12 +19,13 @@ structure AST = struct
   datatype term
     (* list of cid * attribute * type * notnull * dflt_val * pk *)
     (* all other terms evaluate to a relation *)
-    = Relation of {cid: int, attribute: string, ty: string, notnull: bool, dflt_val: string,
+    = Relation of {cid: int, attribute: string, ty: types, notnull: bool, dflt_val: string,
                   primary_key: pk option, foreign_key: fk option, unique: bool, tables: string list} list
     | CartProd of (term * term)
     | NatJoin of (term * term)
-    (* first string is original attribute, second string is renamed attribute *)
-    | Proj of ((string * string) list * term)
+    (* first string is original attribute, second string is renamed attribute,
+       if bool is true then select distinct *)
+    | Proj of ((string * string * bool) list * term)
     | Union of (term * term)
 
 end

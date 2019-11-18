@@ -33,7 +33,13 @@ end = struct
               of SOME n => n
                | NONE => raise Fail "invalid column id"),
             attribute = List.nth (l, 1),
-            ty = List.nth (l, 2),
+            ty =
+            (case List.nth (l, 2)
+              of "INTEGER" => AST.Int
+               | "TEXT" => AST.Text
+               | "DATE" => AST.Date
+               | "TIME" => AST.Time
+               | _ => raise Fail "invalid type"),
             notnull =
             (case Int.fromString (List.nth (l, 3))
               of SOME 0 => false
@@ -69,10 +75,13 @@ end = struct
   (* take in tokens, return list of strings (attributes)
      note that this function takes in all tokens, but in essence can be considered to only be
      looking at the token strings - once it gets to Token.From, it just discards the rest *)
-  fun toAttributes (Token.From :: toks) = []
-    | toAttributes ((Token.String str1) :: Token.As :: (Token.String str2) :: toks) =
-        (str1, str2) :: (toAttributes toks)
-    | toAttributes ((Token.String str) :: toks) = (str, str) :: (toAttributes toks)
+  fun toAttributes (Token.From :: toks, _) = []
+    | toAttributes ((Token.String str1) :: Token.As :: (Token.String str2) :: toks, false) =
+        (str1, str2, false) :: toAttributes (toks, false)
+    | toAttributes ((Token.String str1) :: Token.As :: (Token.String str2) :: toks, true) =
+        (str1, str2, true) :: toAttributes (toks, true)
+    | toAttributes ((Token.String str) :: toks, false) = (str, str, false) :: toAttributes (toks, false)
+    | toAttributes ((Token.String str) :: toks, true) = (str, str, true) :: toAttributes (toks, true)
     | toAttributes _ = raise Fail "only attributes can come after SELECT clause"
 
   (* evaluates to cartesian product term if there is a list of tables after FROM
@@ -90,10 +99,14 @@ end = struct
     | getUnionList (tok :: toks) = getUnionList toks
 
   (* takes in token list, returns term in relational algebra using above helper functions *)
-  fun parse (db, Token.Select :: toks) =
+  fun parse (db, Token.SelectAll :: toks) =
         (case getUnionList toks
-          of [] => AST.Proj (toAttributes toks, parse (db, toks))
-           | toks' => AST.Union (AST.Proj (toAttributes toks, parse (db, toks)), parse (db, toks')))
+          of [] => AST.Proj (toAttributes (toks, false), parse (db, toks))
+           | toks' => AST.Union (AST.Proj (toAttributes (toks, false), parse (db, toks)), parse (db, toks')))
+    | parse (db, Token.SelectDistinct :: toks) =
+        (case getUnionList toks
+          of [] => AST.Proj (toAttributes (toks, true), parse (db, toks))
+           | toks' => AST.Union (AST.Proj (toAttributes (toks, true), parse (db, toks)), parse (db, toks')))
     | parse (db, Token.From :: toks) = join (db, toks)
     | parse (db, (Token.String _) :: toks) = parse (db, toks)
     | parse (db, Token.As :: toks) = parse (db, toks)

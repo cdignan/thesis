@@ -1,7 +1,8 @@
 structure Token = struct
 
   datatype token
-    = Select
+    = SelectAll
+    | SelectDistinct
     | As
     | From
     | NatJoin
