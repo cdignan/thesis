@@ -11,6 +11,21 @@ end = struct
       val schema = Scan.readlist (table ^ ".csv")
       val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA foreign_key_list(" ^ table ^ ")' > fkey.csv")
       val fkey = Scan.readlist "fkey.csv"
+      val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA index_list(" ^ table ^ ")' > index_list.csv")
+      val indexList = Scan.readlist "index_list.csv"
+      fun getUnique ([], _) = false
+        | getUnique (l::ls, attr) =
+            if List.nth (l, 3) = "u"
+            then (let
+                    val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA index_info("
+                                              ^ List.nth (l, 1) ^ ")' > index_info.csv")
+                    val indexInfo = Scan.readlist "index_info.csv"
+                  in
+                    (case List.filter (fn x => List.nth (x, 2) = attr) indexInfo
+                      of [] => getUnique (ls, attr)
+                       | _ => true)
+                  end)
+            else getUnique (ls, attr)
       fun loop ([], fkey) = []
         | loop (l::ls, fkey) =
             {cid =
@@ -28,22 +43,24 @@ end = struct
             primary_key =
             (case Int.fromString (List.nth (l, 5))
               of SOME 0 => SOME AST.NotPK
-               | SOME 1 => SOME AST.PK
-               | SOME 2 =>
-                   (case List.filter (fn sublist => List.nth (sublist, 3) = List.nth (l, 1)) fkey
-                     of [_, b, c, d, e, f, g, h]  :: [] =>
-                          SOME (AST.FK {seq =
-                                       (case Int.fromString b
-                                         of SOME n => n
-                                          | NONE => raise Fail "invalid seq #"),
-                                        table = c,
-                                        from = d,
-                                        to = e,
-                                        on_update = f,
-                                        on_delete = g,
-                                        matc = h})
-                      | _ => raise Fail "invalid foreign key")
+               | SOME n => SOME (AST.PK n)
                | _ => raise Fail "invalid primary key constraint"),
+            foreign_key =
+            (case List.filter (fn sublist => List.nth (sublist, 3) = List.nth (l, 1)) fkey
+              of [] => SOME AST.NotFK
+               | [_, b, c, d, e, f, g, h]  :: [] =>
+                   SOME (AST.FK {seq =
+                                  (case Int.fromString b
+                                    of SOME n => n
+                                     | NONE => raise Fail "invalid seq #"),
+                                 table = c,
+                                 from = d,
+                                 to = e,
+                                 on_update = f,
+                                 on_delete = g,
+                                 matc = h})
+               | _ => raise Fail "invalid foreign key"),
+            unique = getUnique (indexList, List.nth (l, 1)),
             tables = [table]} :: loop (ls, fkey)
     in
       AST.Relation (loop (schema, fkey))

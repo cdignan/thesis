@@ -13,17 +13,13 @@ structure Test = struct
     let
       fun conv (_, (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
         | conv (e : {cid: int, attribute: string, ty: string, notnull: bool, dflt_val: string,
-                    primary_key: AST.pk option, tables: string list}, (Ty.Type (Ty.Text x)) :: xs, 0) =
-            (case ((#ty e), (#notnull e), (#primary_key e))
+                    primary_key: AST.pk option, foreign_key: AST.fk option, unique: bool, tables: string list}, (Ty.Type (Ty.Text x)) :: xs, 0) =
+            (case (#ty e, #notnull e, #primary_key e)
               of ("INTEGER", true, _) =>
                    (case Int.fromString x
                      of SOME x' => (Ty.Type (Ty.Int x')) :: xs
                       | NONE => raise Fail "expected int")
-               | ("INTEGER", _, SOME AST.PK) =>
-                   (case Int.fromString x
-                     of SOME x' => (Ty.Type (Ty.Int x')) :: xs
-                      | NONE => raise Fail "expected int")
-               | ("INTEGER", _, SOME (AST.FK _)) =>
+               | ("INTEGER", _, SOME (AST.PK _)) =>
                    (case Int.fromString x
                      of SOME x' => (Ty.Type (Ty.Int x')) :: xs
                       | NONE => raise Fail "expected int")
@@ -32,16 +28,13 @@ structure Test = struct
                      of SOME x' => (Ty.Option (SOME (Ty.Int x'))) :: xs
                       | NONE => (Ty.Option NONE) :: xs)
                | ("TEXT", true, _) => (Ty.Type (Ty.Text x)) :: xs
-               | ("TEXT", _, SOME AST.PK) => (Ty.Type (Ty.Text x)) :: xs
-               | ("TEXT", _, SOME (AST.FK _)) => (Ty.Type (Ty.Text x)) :: xs
+               | ("TEXT", _, SOME (AST.PK _)) => (Ty.Type (Ty.Text x)) :: xs
                | ("TEXT", _, _) => (Ty.Option (SOME (Ty.Text x))) :: xs
                | ("DATE", true, _) => (Ty.Type (Ty.Date x)) :: xs
-               | ("DATE", _, SOME AST.PK) => (Ty.Type (Ty.Date x)) :: xs
-               | ("DATE", _, SOME (AST.FK _)) => (Ty.Type (Ty.Date x)) :: xs
+               | ("DATE", _, SOME (AST.PK _)) => (Ty.Type (Ty.Date x)) :: xs
                | ("DATE", _, _) => (Ty.Option (SOME (Ty.Date x))) :: xs
                | ("TIME", true, _) => (Ty.Type (Ty.Time x)) :: xs
-               | ("TIME", _, SOME AST.PK) => (Ty.Type (Ty.Time x)) :: xs
-               | ("TIME", _, SOME (AST.FK _)) => (Ty.Type (Ty.Time x)) :: xs
+               | ("TIME", _, SOME (AST.PK _)) => (Ty.Type (Ty.Time x)) :: xs
                | ("TIME", _, _) => (Ty.Option (SOME (Ty.Time x))) :: xs
                | (_, _, _) => raise Fail "convert: type not supported")
         | conv (e, x :: xs, k) = x :: conv (e, xs, k - 1)
