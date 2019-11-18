@@ -88,10 +88,16 @@ end = struct
      evaluates to natural join term if there is a natural join expression after FROM *)
   fun join (db, (Token.String str) :: []) = getSchema (db, str)
     | join (db, (Token.String str) :: Token.Union :: _) = getSchema (db, str)
+    | join (db, (Token.String str) :: Token.LeftNatJoin :: toks) =
+        AST.LeftNatJoin (getSchema (db, str), join (db, toks))
     | join (db, (Token.String str) :: Token.NatJoin :: toks) =
-        AST.NatJoin ((getSchema (db, str)), join (db, toks))
+        AST.NatJoin (getSchema (db, str), join (db, toks))
+    | join (db, (Token.String str) :: Token.LeftOuterJoin :: toks) =
+        AST.LeftOuterJoin (getSchema (db, str), join (db, toks))
+    | join (db, (Token.String str) :: Token.InnerJoin :: toks) =
+        AST.InnerJoin (getSchema (db, str), join (db, toks))
     | join (db, (Token.String str1) :: (Token.String str2) :: toks) =
-        AST.CartProd (getSchema (db, str1), join (db, (Token.String str2) :: toks))
+        AST.InnerJoin (getSchema (db, str1), join (db, (Token.String str2) :: toks))
     | join (_, _) = raise Fail "improper format after FROM clause"
 
   fun getUnionList (Token.Union :: toks) = toks
