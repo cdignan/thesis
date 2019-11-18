@@ -9,7 +9,7 @@ end = struct
     let
       val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA table_info(" ^ table ^ ")' > " ^ table ^ ".csv")
       val schema = Scan.readlist (table ^ ".csv")
-      val _ = OS.Process.system ("sqlite3 -noheader " ^ db ^ " 'PRAGMA foreign_key_list(" ^ table ^ ")' > fkey.csv")
+      val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA foreign_key_list(" ^ table ^ ")' > fkey.csv")
       val fkey = Scan.readlist "fkey.csv"
       fun loop ([], fkey) = []
         | loop (l::ls, fkey) =

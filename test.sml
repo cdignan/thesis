@@ -9,43 +9,45 @@ structure Test = struct
 
   (* take in one attribute with it's info, and one list of Ty.Text terms
      return corrected list of Ty.ty terms *)
-  fun convert (((a, n), b, c, d, e, f, g), l) =
+  fun convert (e, l) =
     let
-      fun conv ((_, _, (_, "INTEGER"), (_, true), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) =
-            (case Int.fromString x
-              of SOME x' => (Ty.Type (Ty.Int x')) :: xs
-               | NONE => raise Fail "expected int")
-        | conv ((_, _, (_, "INTEGER"), _, _, (_, SOME AST.PK), _), (Ty.Type (Ty.Text x)) :: xs, 0) =
-            (case Int.fromString x
-              of SOME x' => (Ty.Type (Ty.Int x')) :: xs
-               | NONE => raise Fail "expected int")
-        | conv ((_, _, (_, "INTEGER"), _, _, (_, SOME (AST.FK _)), _), (Ty.Type (Ty.Text x)) :: xs, 0) =
-            (case Int.fromString x
-              of SOME x' => (Ty.Type (Ty.Int x')) :: xs
-               | NONE => raise Fail "expected int")
-        | conv ((_, _, (_, "INTEGER"), _, _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) =
-            (case Int.fromString x
-              of SOME x' => (Ty.Option (SOME (Ty.Int x'))) :: xs
-               | NONE => (Ty.Option NONE) :: xs)
-        | conv ((_, _, (_, "TEXT"), (_, true), _, _, _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
-        | conv ((_, _, (_, "TEXT"), _, _, (_, SOME AST.PK), _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
-        | conv ((_, _, (_, "TEXT"), _, _, (_, SOME (AST.FK _)), _), (Ty.Type x) :: xs, 0) = (Ty.Type x) :: xs
-        | conv ((_, _, (_, "TEXT"), _, _, _, _), (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
-        | conv ((_, _, (_, "TEXT"), _, _, _, _), (Ty.Type x) :: xs, 0) = (Ty.Option (SOME x)) :: xs
-        | conv ((_, _, (_, "DATE"), (_, true), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
-        | conv ((_, _, (_, "DATE"), _, _, (_, SOME AST.PK), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
-        | conv ((_, _, (_, "DATE"), _, _, (_, SOME (AST.FK _)), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Date x)) :: xs
-        | conv ((_, _, (_, "DATE"), _, _, _, _), (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
-        | conv ((_, _, (_, "DATE"), _, _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Option (SOME (Ty.Date x))) :: xs
-        | conv ((_, _, (_, "TIME"), (_, true), _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
-        | conv ((_, _, (_, "TIME"), _, _, (_, SOME AST.PK), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
-        | conv ((_, _, (_, "TIME"), _, _, (_, SOME (AST.FK _)), _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Type (Ty.Time x)) :: xs
-        | conv ((_, _, (_, "TIME"), _, _, _, _), (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
-        | conv ((_, _, (_, "TIME"), _, _, _, _), (Ty.Type (Ty.Text x)) :: xs, 0) = (Ty.Option (SOME (Ty.Time x))) :: xs
-        | conv (t, x :: xs, k) = x :: conv (t, xs, k - 1)
+      fun conv (_, (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
+        | conv (e : {cid: int, attribute: string, ty: string, notnull: bool, dflt_val: string,
+                    primary_key: AST.pk option, tables: string list}, (Ty.Type (Ty.Text x)) :: xs, 0) =
+            (case ((#ty e), (#notnull e), (#primary_key e))
+              of ("INTEGER", true, _) =>
+                   (case Int.fromString x
+                     of SOME x' => (Ty.Type (Ty.Int x')) :: xs
+                      | NONE => raise Fail "expected int")
+               | ("INTEGER", _, SOME AST.PK) =>
+                   (case Int.fromString x
+                     of SOME x' => (Ty.Type (Ty.Int x')) :: xs
+                      | NONE => raise Fail "expected int")
+               | ("INTEGER", _, SOME (AST.FK _)) =>
+                   (case Int.fromString x
+                     of SOME x' => (Ty.Type (Ty.Int x')) :: xs
+                      | NONE => raise Fail "expected int")
+               | ("INTEGER", _, _) =>
+                   (case Int.fromString x
+                     of SOME x' => (Ty.Option (SOME (Ty.Int x'))) :: xs
+                      | NONE => (Ty.Option NONE) :: xs)
+               | ("TEXT", true, _) => (Ty.Type (Ty.Text x)) :: xs
+               | ("TEXT", _, SOME AST.PK) => (Ty.Type (Ty.Text x)) :: xs
+               | ("TEXT", _, SOME (AST.FK _)) => (Ty.Type (Ty.Text x)) :: xs
+               | ("TEXT", _, _) => (Ty.Option (SOME (Ty.Text x))) :: xs
+               | ("DATE", true, _) => (Ty.Type (Ty.Date x)) :: xs
+               | ("DATE", _, SOME AST.PK) => (Ty.Type (Ty.Date x)) :: xs
+               | ("DATE", _, SOME (AST.FK _)) => (Ty.Type (Ty.Date x)) :: xs
+               | ("DATE", _, _) => (Ty.Option (SOME (Ty.Date x))) :: xs
+               | ("TIME", true, _) => (Ty.Type (Ty.Time x)) :: xs
+               | ("TIME", _, SOME AST.PK) => (Ty.Type (Ty.Time x)) :: xs
+               | ("TIME", _, SOME (AST.FK _)) => (Ty.Type (Ty.Time x)) :: xs
+               | ("TIME", _, _) => (Ty.Option (SOME (Ty.Time x))) :: xs
+               | (_, _, _) => raise Fail "convert: type not supported")
+        | conv (e, x :: xs, k) = x :: conv (e, xs, k - 1)
         | conv (_, _, _) = raise Fail "invalid input"
     in
-      conv (((a, n), b, c, d, e, f, g), l, n)
+      conv (e, l, #cid e)
     end
 
   (* convert a list of lists *)
