@@ -81,14 +81,6 @@ end = struct
 
   (* evaluate each term *)
   fun eval (AST.Relation ls) = AST.Relation ls
-    | eval (AST.LeftOuterJoin (rel1, rel2)) =
-        (case (eval rel1, eval rel2)
-          of (AST.Relation l1, AST.Relation l2) => AST.Relation (resetcid ((l1@l2), 0))
-           | (_, _) => raise Fail "eval error - left outer join")
-    | eval (AST.InnerJoin (rel1, rel2)) =
-        (case (eval rel1, eval rel2)
-          of (AST.Relation l1, AST.Relation l2) => AST.Relation (resetcid ((l1@l2), 0))
-           | (_, _) => raise Fail "eval error - inner join")
     | eval (AST.LeftNatJoin (rel1, rel2)) =
         (case (eval rel1, eval rel2)
           of (AST.Relation l1, AST.Relation l2) => AST.Relation (resetcid ((removeDuplicates (l1, l2)), 0))
@@ -98,7 +90,7 @@ end = struct
           of (AST.Relation l1, AST.Relation l2) => AST.Relation (resetcid ((removeDuplicates (l1, l2)), 0))
            | (_, _) => raise Fail "eval error - natural join")
     | eval (AST.Proj (("*", "*", _)::[], rel)) = eval rel
-    | eval (AST.Proj (("*", "*", _)::strs, rel)) = eval (AST.InnerJoin (eval rel, AST.Proj (strs, rel)))
+    | eval (AST.Proj (("*", "*", _)::strs, rel)) = eval (AST.NatJoin (eval rel, AST.Proj (strs, rel))) (* TODO: this could cause the schema and relation to not match *)
     | eval (AST.Proj ((str1, str2, _)::[], rel)) =
         (case eval rel
           of AST.Relation ls =>
@@ -117,7 +109,7 @@ end = struct
                else AST.Relation (List.map (fn x => setAttr (x, str2))
                                            (resetcid ((List.filter (fn x => (#attribute x) = str1) ls), 0)))
            | _ => raise Fail "eval error - projection")
-    | eval (AST.Proj (str::strs, rel)) = eval (AST.InnerJoin (AST.Proj (str::[], rel), AST.Proj (strs, rel)))
+    | eval (AST.Proj (str::strs, rel)) = eval (AST.NatJoin (AST.Proj (str::[], rel), AST.Proj (strs, rel))) (* TODO: this could cause the shema and relation to not match *)
     | eval (AST.Union (rel1, rel2)) =
         (case (eval rel1, eval rel2)
           of (AST.Relation l1, AST.Relation l2) => AST.Relation (union (l1, l2))

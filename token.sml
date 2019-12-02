@@ -5,8 +5,6 @@ structure Token = struct
     | SelectDistinct
     | As
     | From
-    | InnerJoin
-    | LeftOuterJoin
     | NatJoin
     | LeftNatJoin
     | String of string

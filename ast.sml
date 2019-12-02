@@ -21,8 +21,6 @@ structure AST = struct
     (* all other terms evaluate to a relation *)
     = Relation of {cid: int, attribute: string, ty: types, notnull: bool, dflt_val: string,
                   primary_key: pk option, foreign_key: fk option, unique: bool, tables: string list} list
-    | InnerJoin of (term * term)
-    | LeftOuterJoin of (term * term)
     | NatJoin of (term * term)
     | LeftNatJoin of (term * term)
     (* first string is original attribute, second string is renamed attribute,

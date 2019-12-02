@@ -84,20 +84,32 @@ end = struct
     | toAttributes ((Token.String str) :: toks, true) = (str, str, true) :: toAttributes (toks, true)
     | toAttributes _ = raise Fail "only attributes can come after SELECT clause"
 
-  (* evaluates to cartesian product term if there is a list of tables after FROM
-     evaluates to natural join term if there is a natural join expression after FROM *)
+  fun leftNatJoin (db, rel, (Token.String str) :: []) =
+        AST.LeftNatJoin (rel, getSchema (db, str))
+    | leftNatJoin (db, rel, (Token.String str) :: Token.Union :: []) =
+        AST.LeftNatJoin (rel, getSchema (db, str))
+    | leftNatJoin (db, rel, (Token.String str) :: Token.LeftNatJoin :: toks) =
+        leftNatJoin (db, AST.LeftNatJoin (rel, getSchema (db, str)), toks)
+    | leftNatJoin (db, rel, (Token.String str) :: Token.NatJoin :: toks) =
+        natJoin (db, AST.LeftNatJoin (rel, getSchema (db, str)), toks)
+    | leftNatJoin (_, _, _) = raise Fail "leftNatJoin - invalid token list"
+  and natJoin (db, rel, (Token.String str) :: []) =
+        AST.NatJoin (rel, getSchema (db, str))
+    | natJoin (db, rel, (Token.String str) :: Token.Union :: []) =
+        AST.NatJoin (rel, getSchema (db, str))
+    | natJoin (db, rel, (Token.String str) :: Token.NatJoin :: toks) =
+        natJoin (db, AST.NatJoin (rel, getSchema (db, str)), toks)
+    | natJoin (db, rel, (Token.String str) :: Token.LeftNatJoin :: toks) =
+        leftNatJoin (db, AST.NatJoin (rel, getSchema (db, str)), toks)
+    | natJoin (_, _, _) = raise Fail "natJoin - invalid token list"
+
+  (* evaluates to natural join term if there is a natural join expression after FROM *)
   fun join (db, (Token.String str) :: []) = getSchema (db, str)
     | join (db, (Token.String str) :: Token.Union :: _) = getSchema (db, str)
     | join (db, (Token.String str) :: Token.LeftNatJoin :: toks) =
-        AST.LeftNatJoin (getSchema (db, str), join (db, toks))
+        leftNatJoin (db, getSchema (db, str), toks)
     | join (db, (Token.String str) :: Token.NatJoin :: toks) =
-        AST.NatJoin (getSchema (db, str), join (db, toks))
-    | join (db, (Token.String str) :: Token.LeftOuterJoin :: toks) =
-        AST.LeftOuterJoin (getSchema (db, str), join (db, toks))
-    | join (db, (Token.String str) :: Token.InnerJoin :: toks) =
-        AST.InnerJoin (getSchema (db, str), join (db, toks))
-    | join (db, (Token.String str1) :: (Token.String str2) :: toks) =
-        AST.InnerJoin (getSchema (db, str1), join (db, (Token.String str2) :: toks))
+        natJoin (db, getSchema (db, str), toks)
     | join (_, _) = raise Fail "improper format after FROM clause"
 
   fun getUnionList (Token.Union :: toks) = toks
