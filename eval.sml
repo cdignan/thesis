@@ -82,7 +82,10 @@ end = struct
   (* TODO: in the case of left natural join:
      1. set left list of records to have a notnull value of false
      2. set unique field to true if PK, leave it if not PK. set PK to NONE
-     3. merge lists and remove duplicates. if both copies of duplicate are unique, then it stays unique. everyting else goes to not unique
+     3. merge lists and remove duplicates.
+        a) if both copies of duplicate are unique, then it stays unique.
+        b) if you say where a = b and both a and b unique, both stay unique
+        c) everyting else goes to not unique
      4. reset cid *)
   (* evaluate each term *)
   fun eval (AST.Relation ls) = AST.Relation ls
