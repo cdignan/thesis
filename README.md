@@ -30,4 +30,10 @@ I also resolved a problem that I had thought of a while ago but never got around
 
 11/9/2019: I added a "noheader" flag to my command line calls to overrule the user's local settings, as not having headers is required according to my implementation. I also changed "Optional" types to not be recursive.
 
-11/10/2019: *todo*
+11/10/2019-11/18/2019: *todo*
+
+11/19/2019: I have looked deeper into the implementation of databases in other programming languages. I think the most interesting case is Links. Links is a programming language that combines multiple different common web development languages, including SQL. In a nutshell, query results are represented as lists of records, where the label is the attribute name and the value is the attribute value in that tuple. Queries are represented as list comprehensions, which makes sense, as list comprehensions use set-builder notation, and the relational algebra defines a "relation" as a set of tuples (and hence projections, selections, etc. are also represented in set-builder notation).
+
+If I represent a query result as a list of records, then I would not be able to have duplicate column names, but I think that would be good (seems like bad practice to have duplicate column names). Also the relational algebra only specifies natural join as far as I can tell. Therefore, if someone wants to do an inner join between two relations that share an attribute name, it might make sense to require them to rename one of the attributes.
+
+I'm not sure how Links handles null values - perhaps every value in the query result is an option type? I know that up until now our plan has been to track what stays optional and what doesn't, but there is definitely some messy overhead to that. I also am not sure how outer joins are specified by the relational algebra... I need to delve further into the Relational Database Theory book.
