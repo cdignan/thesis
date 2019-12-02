@@ -79,6 +79,11 @@ end = struct
         else raise Fail "invalid union"
     | union (_, _) = raise Fail "union must be same number of attrs"
 
+  (* TODO: in the case of left natural join:
+     1. set left list of records to have a notnull value of false
+     2. set unique field to true if PK, leave it if not PK. set PK to NONE
+     3. merge lists and remove duplicates. if both copies of duplicate are unique, then it stays unique. everyting else goes to not unique
+     4. reset cid *)
   (* evaluate each term *)
   fun eval (AST.Relation ls) = AST.Relation ls
     | eval (AST.LeftNatJoin (rel1, rel2)) =
