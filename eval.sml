@@ -55,7 +55,7 @@ end = struct
     | removeDuplicates (x::xs : {cid: int, attribute: string, ty: AST.types, notnull: bool, dflt_val: string,
                                 primary_key: AST.pk option, foreign_key: AST.fk option, unique: bool, tables: string list} list, l) =
         (case List.filter (fn x' => (#attribute x) = (#attribute x')) l
-          of x'' :: [] => setTables (x'', (#tables x)@(#tables x'')) ::
+          of x'' :: [] => setTables (x, (#tables x)@(#tables x'')) ::
                           removeDuplicates (xs, List.filter (fn x' => (#attribute x) <> (#attribute x')) l)
            | [] => x :: removeDuplicates (xs, l)
            | _ => raise Fail "currently don't support when a relation has multiple columns of same name in natural join")
@@ -83,11 +83,12 @@ end = struct
   fun eval (AST.Relation ls) = AST.Relation ls
     | eval (AST.LeftNatJoin (rel1, rel2)) =
         (case (eval rel1, eval rel2)
-          of (AST.Relation l1, AST.Relation l2) => AST.Relation (resetcid ((removeDuplicates (l1, l2)), 0))
+          of (AST.Relation l1, AST.Relation l2) =>
+               AST.Relation (resetcid (removeDuplicates (List.map (fn x => setPK (setNull (x, false), NONE)) l1, l2), 0))
            | (_, _) => raise Fail "eval error - left natural join")
     | eval (AST.NatJoin (rel1, rel2)) =
         (case (eval rel1, eval rel2)
-          of (AST.Relation l1, AST.Relation l2) => AST.Relation (resetcid ((removeDuplicates (l1, l2)), 0))
+          of (AST.Relation l1, AST.Relation l2) => AST.Relation (resetcid (removeDuplicates (l1, l2), 0))
            | (_, _) => raise Fail "eval error - natural join")
     | eval (AST.Proj (("*", "*", _)::[], rel)) = eval rel
     | eval (AST.Proj (("*", "*", _)::strs, rel)) = eval (AST.NatJoin (eval rel, AST.Proj (strs, rel))) (* TODO: this could cause the schema and relation to not match *)
