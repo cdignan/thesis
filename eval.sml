@@ -80,19 +80,17 @@ end = struct
     | union (_, _) = raise Fail "union must be same number of attrs"
 
   (* TODO: in the case of left natural join:
-     1. set left list of records to have a notnull value of false
-     2. set unique field to true if PK, leave it if not PK. set PK to NONE
+     2. set unique field to true if PK, leave it if not PK
      3. merge lists and remove duplicates.
         a) if both copies of duplicate are unique, then it stays unique.
         b) if you say where a = b and both a and b unique, both stay unique
-        c) everyting else goes to not unique
-     4. reset cid *)
+        c) everyting else goes to not unique *)
   (* evaluate each term *)
   fun eval (AST.Relation ls) = AST.Relation ls
     | eval (AST.LeftNatJoin (rel1, rel2)) =
         (case (eval rel1, eval rel2)
           of (AST.Relation l1, AST.Relation l2) =>
-               AST.Relation (resetcid (removeDuplicates (List.map (fn x => setPK (setNull (x, false), NONE)) l1, l2), 0))
+               AST.Relation (resetcid (removeDuplicates (l1, List.map (fn x => setPK (setNull (x, false), NONE)) l2), 0))
            | (_, _) => raise Fail "eval error - left natural join")
     | eval (AST.NatJoin (rel1, rel2)) =
         (case (eval rel1, eval rel2)

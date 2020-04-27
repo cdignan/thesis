@@ -28,6 +28,7 @@ end = struct
     let
       fun process (strs, currChars, []) = strs@[implode currChars]
         | process (strs, currChars, #"\n"::[]) = strs@[implode currChars]
+        | process (strs, currChars, #"\""::nextChars) = process (strs, currChars, nextChars)
         | process (strs, [], c::nextChars) =
             (case List.find (fn x => c = x) delimiters
               of SOME x => process (strs@[""], [], nextChars) (* this line is the only difference *)
