@@ -13,19 +13,17 @@ end = struct
       val fkey = Scan.readlist "fkey.csv"
       val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA index_list(" ^ table ^ ")' > index_list.csv")
       val indexList = Scan.readlist "index_list.csv"
-      fun getUnique ([], _) = false
-        | getUnique (l::ls, attr) =
+      fun getUnique [] = []
+        | getUnique (l :: ls) =
             if List.nth (l, 3) = "u"
             then (let
                     val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA index_info("
                                               ^ List.nth (l, 1) ^ ")' > index_info.csv")
                     val indexInfo = Scan.readlist "index_info.csv"
                   in
-                    (case List.filter (fn x => List.nth (x, 2) = attr) indexInfo
-                      of [] => getUnique (ls, attr)
-                       | _ => true)
+                    (List.map (fn x => List.nth (x, 2)) indexInfo) :: getUnique ls
                   end)
-            else getUnique (ls, attr)
+            else getUnique ls
       fun loop ([], fkey) = []
         | loop (l::ls, fkey) =
             {cid =
@@ -66,10 +64,9 @@ end = struct
                                  on_delete = g,
                                  matc = h})
                | _ => raise Fail "invalid foreign key"),
-            unique = getUnique (indexList, List.nth (l, 1)),
             tables = [table]} :: loop (ls, fkey)
     in
-      AST.Relation (loop (schema, fkey))
+      AST.Relation (loop (schema, fkey), getUnique indexList)
     end
 
   (* take in tokens, return list of strings (attributes)
@@ -84,32 +81,24 @@ end = struct
     | toAttributes ((Token.String str) :: toks, true) = (str, str, true) :: toAttributes (toks, true)
     | toAttributes _ = raise Fail "only attributes can come after SELECT clause"
 
-  fun leftNatJoin (db, rel, (Token.String str) :: []) =
-        AST.LeftNatJoin (rel, getSchema (db, str))
-    | leftNatJoin (db, rel, (Token.String str) :: Token.Union :: []) =
-        AST.LeftNatJoin (rel, getSchema (db, str))
-    | leftNatJoin (db, rel, (Token.String str) :: Token.LeftNatJoin :: toks) =
-        leftNatJoin (db, AST.LeftNatJoin (rel, getSchema (db, str)), toks)
-    | leftNatJoin (db, rel, (Token.String str) :: Token.NatJoin :: toks) =
-        natJoin (db, AST.LeftNatJoin (rel, getSchema (db, str)), toks)
-    | leftNatJoin (_, _, _) = raise Fail "leftNatJoin - invalid token list"
-  and natJoin (db, rel, (Token.String str) :: []) =
-        AST.NatJoin (rel, getSchema (db, str))
-    | natJoin (db, rel, (Token.String str) :: Token.Union :: []) =
-        AST.NatJoin (rel, getSchema (db, str))
-    | natJoin (db, rel, (Token.String str) :: Token.NatJoin :: toks) =
-        natJoin (db, AST.NatJoin (rel, getSchema (db, str)), toks)
-    | natJoin (db, rel, (Token.String str) :: Token.LeftNatJoin :: toks) =
-        leftNatJoin (db, AST.NatJoin (rel, getSchema (db, str)), toks)
-    | natJoin (_, _, _) = raise Fail "natJoin - invalid token list"
+  fun cartProd (db, rel, (Token.String str) :: []) =
+        AST.CartProd (rel, getSchema (db, str), [])
+    | cartProd (db, rel, (Token.String str) :: Token.Union :: _) =
+        AST.CartProd (rel, getSchema (db, str), [])
+    | cartProd (db, rel, (Token.String str) :: Token.Where :: toks) =
+        AST.CartProd (rel, getSchema (db, str), afterWhere toks)
+    | cartProd (_, _, _) = raise Fail "cartProd - invalid token list"
+  and afterWhere ((Token.String str1) :: Token.Equals :: (Token.String str2) :: Token.And :: toks) =
+        (str1, str2) :: afterWhere toks
+    | afterWhere ((Token.String str1) :: Token.Equals :: (Token.String str2) :: Token.Union :: _) = [(str1, str2)]
+    | afterWhere ((Token.String str1) :: Token.Equals :: (Token.String str2) :: []) = [(str1, str2)]
+    | afterWhere _ = []
 
   (* evaluates to natural join term if there is a natural join expression after FROM *)
   fun join (db, (Token.String str) :: []) = getSchema (db, str)
     | join (db, (Token.String str) :: Token.Union :: _) = getSchema (db, str)
-    | join (db, (Token.String str) :: Token.LeftNatJoin :: toks) =
-        leftNatJoin (db, getSchema (db, str), toks)
-    | join (db, (Token.String str) :: Token.NatJoin :: toks) =
-        natJoin (db, getSchema (db, str), toks)
+    | join (db, (Token.String str) :: Token.CartProd :: toks) =
+        cartProd (db, getSchema (db, str), toks)
     | join (_, _) = raise Fail "improper format after FROM clause"
 
   fun getUnionList (Token.Union :: toks) = toks

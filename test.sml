@@ -13,7 +13,7 @@ structure Test = struct
     let
       fun conv (_, (Ty.Type (Ty.Text "")) :: xs, 0) = (Ty.Option NONE) :: xs
         | conv (e : {cid: int, attribute: string, ty: AST.types, notnull: bool, dflt_val: string,
-                    primary_key: AST.pk option, foreign_key: AST.fk option, unique: bool, tables: string list}, (Ty.Type (Ty.Text x)) :: xs, 0) =
+                    primary_key: AST.pk option, foreign_key: AST.fk option, tables: string list}, (Ty.Type (Ty.Text x)) :: xs, 0) =
             (case (#ty e, #notnull e, #primary_key e)
               of (AST.Int, true, _) =>
                    (case Int.fromString x
@@ -61,7 +61,7 @@ structure Test = struct
       val eval = Eval.eval parse
       val convertedRows =
             (case eval
-              of AST.Relation l => totalCorrectTypes (l, rows)
+              of AST.Relation (l, _) => totalCorrectTypes (l, rows)
                | _ => raise Fail "should evaluate to relation")
     in
       (eval, convertedRows)
