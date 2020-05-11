@@ -71,18 +71,17 @@ end = struct
       and toTokenAfterFrom [] = []
         | toTokenAfterFrom ("UNION" :: ss) = Token.Union :: toToken ss
         | toTokenAfterFrom ("union" :: ss) = Token.Union :: toToken ss
-        | toTokenAfterFrom ("JOIN" :: ss) = Token.CartProd :: toTokenAfterFrom ss
-        | toTokenAfterFrom ("join" :: ss) = Token.CartProd :: toTokenAfterFrom ss
-        | toTokenAfterFrom ("WHERE" :: ss) = Token.Where :: toTokenAfterWhere ss
-        | toTokenAfterFrom ("where" :: ss) = Token.Where :: toTokenAfterWhere ss
+        | toTokenAfterFrom ("LEFT" :: "NATURAL" :: "JOIN" :: ss) = Token.LeftNatJoin :: toTokenAfterFrom ss
+        | toTokenAfterFrom ("left" :: "natural" :: "join" :: ss) = Token.LeftNatJoin :: toTokenAfterFrom ss
+        | toTokenAfterFrom ("NATURAL" :: "JOIN" :: ss) = Token.NatJoin :: toTokenAfterFrom ss
+        | toTokenAfterFrom ("natural" :: "join" :: ss) = Token.NatJoin :: toTokenAfterFrom ss
+        | toTokenAfterFrom ("WHERE" :: ss) = toTokenAfterWhere ss
+        | toTokenAfterFrom ("where" :: ss) = toTokenAfterWhere ss
         | toTokenAfterFrom (s :: ss) = (Token.String s) :: toTokenAfterFrom ss
       and toTokenAfterWhere ("UNION" :: ss) = Token.Union :: toToken ss
         | toTokenAfterWhere ("union" :: ss) = Token.Union :: toToken ss
-        | toTokenAfterWhere ("=" :: ss) = Token.Equals :: toTokenAfterWhere ss
-        | toTokenAfterWhere ("AND" :: ss) = Token.And :: toTokenAfterWhere ss
-        | toTokenAfterWhere ("and" :: ss) = Token.And :: toTokenAfterWhere ss
         | toTokenAfterWhere [] = []
-        | toTokenAfterWhere (s :: ss) = (Token.String s) :: toTokenAfterWhere ss
+        | toTokenAfterWhere (_ :: ss) = toTokenAfterWhere ss
     in
       toToken stringList
     end

@@ -5,11 +5,9 @@ structure Token = struct
     | SelectDistinct
     | As
     | From
-    | CartProd
+    | NatJoin
+    | LeftNatJoin
     | String of string
-    | Where
-    | Equals
-    | And
     | Union
 
 end
