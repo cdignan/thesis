@@ -1,6 +1,6 @@
-structure Test = struct
+structure Query = struct
 
-  (* type Test.run (db, cmd) in the SML repl *)
+  (* type Query.run (db, cmd) in the SML repl *)
 
   (* takes in a string list list, returns a Ty.ty list list
      everything will be Ty.Text but that will be corrected in covert *)
