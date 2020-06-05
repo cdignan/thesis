@@ -13,24 +13,47 @@ end = struct
       val fkey = Scan.readlist "fkey.csv"
       val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA index_list(" ^ table ^ ")' > index_list.csv")
       val indexList = Scan.readlist "index_list.csv"
+      fun getPK ls = (case List.filter (fn l => List.nth (l, 3) = "pk") ls
+                       of idx :: _ => let
+                                        val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA index_info("
+                                                                  ^ List.nth (idx, 1) ^ ")' > pk_info.csv")
+                                        val indexInfo = Scan.readlist "pk_info.csv"
+                                      in
+                                        List.map (fn x => List.nth (x, 2)) indexInfo
+                                      end
+                        | [] => (case List.filter (fn l => List.nth (l, 5) = "1") schema
+                                  of i :: _ => [List.nth (i, 1)]
+                                   | [] => []))
+      fun getFK [] = []
+        | getFK ([a, b, c, d, e, f, g, h] :: ls : string list list) =
+            (case List.partition (fn x => List.nth (x, 0) = a) ([a, b, c, d, e, f, g, h] :: ls)
+              of (y, ys) => (List.map (fn l => {table = List.nth (l, 2), from = List.nth (l, 3), to = List.nth (l, 4)}) y) :: (getFK ys))
+        | getFK _ = raise Fail "invalid foreign key list"
+      fun listEqual ([], []) = true
+        | listEqual (_, []) = false
+        | listEqual ([], _) = false
+        | listEqual (x :: xs, ys) = if (List.exists (fn z => z = x) ys)
+                                    then listEqual (List.filter (fn z => z <> x) xs, List.filter (fn z => z <> x) ys)
+                                    else false
+      fun equalToAny (_, []) = false
+        | equalToAny (p, u :: us) = if listEqual (p, u) then true else equalToAny (p, us)
+      fun possiblyAppendPK (p, us) = if equalToAny (p, us) orelse p = []
+                                     then us
+                                     else p :: us
       fun getUnique [] = []
         | getUnique (l :: ls) =
             if List.nth (l, 3) = "u"
             then (let
                     val _ = OS.Process.system ("sqlite3 -csv -noheader " ^ db ^ " 'PRAGMA index_info("
-                                              ^ List.nth (l, 1) ^ ")' > index_info.csv")
-                    val indexInfo = Scan.readlist "index_info.csv"
+                                              ^ List.nth (l, 1) ^ ")' > unique_info.csv")
+                    val indexInfo = Scan.readlist "unique_info.csv"
                   in
                     (List.map (fn x => List.nth (x, 2)) indexInfo) :: getUnique ls
                   end)
             else getUnique ls
-      fun loop ([], fkey) = []
-        | loop (l::ls, fkey) =
-            {cid =
-            (case Int.fromString (List.nth (l, 0))
-              of SOME n => n
-               | NONE => raise Fail "invalid column id"),
-            attribute = List.nth (l, 1),
+      fun loop [] = []
+        | loop (l::ls) =
+            {attribute = List.nth (l, 1),
             ty =
             (case List.nth (l, 2)
               of "INTEGER" => AST.Int
@@ -44,29 +67,9 @@ end = struct
                | SOME 1 => true
                | _ => raise Fail "invalid not null constaint"),
             dflt_val = List.nth (l, 4),
-            primary_key =
-            (case Int.fromString (List.nth (l, 5))
-              of SOME 0 => SOME AST.NotPK
-               | SOME n => SOME (AST.PK n)
-               | _ => raise Fail "invalid primary key constraint"),
-            foreign_key =
-            (case List.filter (fn sublist => List.nth (sublist, 3) = List.nth (l, 1)) fkey
-              of [] => SOME AST.NotFK
-               | [_, b, c, d, e, f, g, h]  :: [] =>
-                   SOME (AST.FK {seq =
-                                  (case Int.fromString b
-                                    of SOME n => n
-                                     | NONE => raise Fail "invalid seq #"),
-                                 table = c,
-                                 from = d,
-                                 to = e,
-                                 on_update = f,
-                                 on_delete = g,
-                                 matc = h})
-               | _ => raise Fail "invalid foreign key"),
-            tables = [table]} :: loop (ls, fkey)
+            tables = [table]} :: loop ls
     in
-      AST.Relation (loop (schema, fkey), getUnique indexList)
+      AST.Relation (loop schema, possiblyAppendPK (getPK indexList, getUnique indexList), SOME (getPK indexList), SOME (getFK fkey))
     end
 
   (* take in tokens, return list of strings (attributes)
@@ -96,6 +99,7 @@ end = struct
 
   (* evaluates to natural join term if there is a natural join expression after FROM *)
   fun join (db, (Token.String str) :: []) = getSchema (db, str)
+    | join (db, (Token.String str) :: Token.Where :: _) = getSchema (db, str)
     | join (db, (Token.String str) :: Token.Union :: _) = getSchema (db, str)
     | join (db, (Token.String str) :: Token.CartProd :: toks) =
         cartProd (db, getSchema (db, str), toks)

@@ -1,6 +1,6 @@
 Group
   structure Ty
-  structure Test
+  structure Query
   structure AST
   structure Eval
   structure Parse
@@ -10,7 +10,7 @@ is
   $/basis.cm
   $/smlnj-lib.cm
   ty.sml
-  test.sml
+  query.sml
   ast.sml
   eval.sml
   parse.sml
